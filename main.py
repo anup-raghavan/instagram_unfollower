@@ -202,21 +202,24 @@ def process_profile(page, profile_url):
 def main():
     print("--- Instagram Follow-Back Processor ---")
     
-    csv_path = input("Enter path to input CSV: ")
+    csv_path = input("Enter path to input file (CSV/Excel): ")
     if not os.path.exists(csv_path):
         print("File not found.")
         return
 
     try:
-        df = pd.read_csv(csv_path)
+        if csv_path.lower().endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(csv_path)
+        else:
+            df = pd.read_csv(csv_path)
     except Exception as e:
-        print(f"Error reading CSV: {e}")
+        print(f"Error reading file: {e}")
         return
 
     # Check columns
-    required_cols = ["Username", "Instagram Link", "Date Followed"]
+    required_cols = ["Username", "Instagram Link"]
     if not all(col in df.columns for col in required_cols):
-        print(f"CSV missing required columns: {required_cols}")
+        print(f"File missing required columns: {required_cols}")
         return
 
     # Add Status column if not exists
@@ -280,12 +283,18 @@ def main():
                 df.at[index, "Status"] = status
                 
                 # Save progress (Idempotence helper)
-                output_file = csv_path.replace(".csv", "_updated.csv")
+                # Output filename handling
+                file_root, file_ext = os.path.splitext(csv_path)
+                output_file = f"{file_root}_updated{file_ext}"
+                
                 try:
-                    df.to_csv(output_file, index=False)
+                    if file_ext.lower() in ['.xlsx', '.xls']:
+                        df.to_excel(output_file, index=False)
+                    else:
+                        df.to_csv(output_file, index=False)
                     print(f"Saved progress to {output_file}")
                 except Exception as e:
-                    print(f"Error saving CSV: {e}")
+                    print(f"Error saving progress: {e}")
 
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
